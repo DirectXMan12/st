@@ -1,0 +1,18 @@
+#!/bin/zsh
+
+PARAM=$1
+
+case $PARAM in
+    http(s|)://*)
+        PROG=$(dmenu -p $PARAM <<EOF
+chromium
+xdg-open
+EOF
+)
+        $PROG $PARAM >/dev/null 2>&1 &
+        ;;
+    *)
+        PROG=$(dmenu_path | dmenu -p $PARAM)
+        st /bin/zsh -c "$PROG $PARAM" >/dev/null 2>&1 &
+        ;;
+esac
