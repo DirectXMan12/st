@@ -96,7 +96,7 @@ const char *colorname[] = {
 	"#d33682",  /*  5: magenta  */
 	"#2aa198",  /*  6: cyan     */
 	"#eee8d5",  /*  7: white    */
-	"#002b36",  /*  8: brblack  */
+	"#404a4c",  /*  8: brblack  */
 	"#cb4b16",  /*  9: brred    */
 	"#586e75",  /* 10: brgreen  */
 	"#657b83",  /* 11: bryellow */
@@ -108,11 +108,11 @@ const char *colorname[] = {
 
 
 /*
- * Default colors (colorname index)
+ * Default colors (colorname index or TRUECOLOR)
  * foreground, background, cursor, reverse cursor
  */
 unsigned int defaultfg = 12;
-unsigned int defaultbg = 8;
+unsigned int defaultbg = TRUECOLOR(0x00, 0x2b, 0x36);
 unsigned int defaultcs = 14;
 unsigned int defaultrcs = 15;
 
