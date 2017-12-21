@@ -78,6 +78,8 @@ typedef struct {
 	size_t collen;
 	Font font, bfont, ifont, ibfont;
 	GC gc;
+
+    Color *defaultfg, *defaultbg, *defaultcs, *defaultrcs;
 } DC;
 
 static inline ushort sixd_to_16bit(int);
@@ -628,6 +630,7 @@ xloadcols(void)
 	int i;
 	static int loaded;
 	Color *cp;
+    XRenderColor tmpcol;
 
 	dc.collen = MAX(colornamelen, 256);
 	dc.col = xmalloc(dc.collen * sizeof(Color));
@@ -644,6 +647,51 @@ xloadcols(void)
 			else
 				die("Could not allocate color %d\n", i);
 		}
+
+    if (IS_TRUECOL(defaultbg)) {
+        tmpcol.alpha = 0xffff;
+        tmpcol.red = TRUERED(defaultbg);
+        tmpcol.green = TRUEGREEN(defaultbg);
+        tmpcol.blue = TRUEBLUE(defaultbg);
+        dc.defaultbg = xmalloc(sizeof(Color));
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &tmpcol, dc.defaultbg);
+    } else {
+        dc.defaultbg = &dc.col[defaultbg];
+    }
+
+    if (IS_TRUECOL(defaultfg)) {
+        tmpcol.alpha = 0xffff;
+        tmpcol.red = TRUERED(defaultfg);
+        tmpcol.green = TRUEGREEN(defaultfg);
+        tmpcol.blue = TRUEBLUE(defaultfg);
+        dc.defaultfg = xmalloc(sizeof(Color));
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &tmpcol, dc.defaultfg);
+    } else {
+        dc.defaultfg = &dc.col[defaultfg];
+    }
+
+    if (IS_TRUECOL(defaultcs)) {
+        tmpcol.alpha = 0xffff;
+        tmpcol.red = TRUERED(defaultcs);
+        tmpcol.green = TRUEGREEN(defaultcs);
+        tmpcol.blue = TRUEBLUE(defaultcs);
+        dc.defaultcs = xmalloc(sizeof(Color));
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &tmpcol, dc.defaultcs);
+    } else {
+        dc.defaultcs = &dc.col[defaultcs];
+    }
+
+    if (IS_TRUECOL(defaultrcs)) {
+        tmpcol.alpha = 0xffff;
+        tmpcol.red = TRUERED(defaultrcs);
+        tmpcol.green = TRUEGREEN(defaultrcs);
+        tmpcol.blue = TRUEBLUE(defaultrcs);
+        dc.defaultrcs = xmalloc(sizeof(Color));
+		XftColorAllocValue(xw.dpy, xw.vis, xw.cmap, &tmpcol, dc.defaultrcs);
+    } else {
+        dc.defaultrcs = &dc.col[defaultrcs];
+    }
+
 	loaded = 1;
 }
 
@@ -672,7 +720,7 @@ void
 xclear(int x1, int y1, int x2, int y2)
 {
 	XftDrawRect(xw.draw,
-			&dc.col[IS_SET(MODE_REVERSE)? defaultfg : defaultbg],
+		    IS_SET(MODE_REVERSE)? dc.defaultfg : dc.defaultbg,
 			x1, y1, x2-x1, y2-y1);
 }
 
@@ -926,8 +974,8 @@ xinit(void)
 		xw.t += DisplayHeight(xw.dpy, xw.scr) - win.h - 2;
 
 	/* Events */
-	xw.attrs.background_pixel = dc.col[defaultbg].pixel;
-	xw.attrs.border_pixel = dc.col[defaultbg].pixel;
+	xw.attrs.background_pixel = dc.defaultbg->pixel;
+	xw.attrs.border_pixel = dc.defaultbg->pixel;
 	xw.attrs.bit_gravity = NorthWestGravity;
 	xw.attrs.event_mask = FocusChangeMask | KeyPressMask
 		| ExposureMask | VisibilityChangeMask | StructureNotifyMask
@@ -947,7 +995,7 @@ xinit(void)
 			&gcvalues);
 	xw.buf = XCreatePixmap(xw.dpy, xw.win, win.w, win.h,
 			DefaultDepth(xw.dpy, xw.scr));
-	XSetForeground(xw.dpy, dc.gc, dc.col[defaultbg].pixel);
+	XSetForeground(xw.dpy, dc.gc, dc.defaultbg->pixel);
 	XFillRectangle(xw.dpy, xw.buf, dc.gc, 0, 0, win.w, win.h);
 
 	/* Xft rendering context */
@@ -1189,8 +1237,8 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 		fg = &dc.col[base.fg + 8];
 
 	if (IS_SET(MODE_REVERSE)) {
-		if (fg == &dc.col[defaultfg]) {
-			fg = &dc.col[defaultbg];
+		if (fg == dc.defaultfg) {
+			fg = dc.defaultbg;
 		} else {
 			colfg.red = ~fg->color.red;
 			colfg.green = ~fg->color.green;
@@ -1201,8 +1249,8 @@ xdrawglyphfontspecs(const XftGlyphFontSpec *specs, Glyph base, int len, int x, i
 			fg = &revfg;
 		}
 
-		if (bg == &dc.col[defaultbg]) {
-			bg = &dc.col[defaultfg];
+		if (bg == dc.defaultbg) {
+			bg = dc.defaultfg;
 		} else {
 			colbg.red = ~bg->color.red;
 			colbg.green = ~bg->color.green;
@@ -1323,19 +1371,19 @@ xdrawcursor(void)
 		g.mode |= ATTR_REVERSE;
 		g.bg = defaultfg;
 		if (ena_sel && selected(term.c.x, term.c.y)) {
-			drawcol = dc.col[defaultcs];
+			drawcol = *dc.defaultcs;
 			g.fg = defaultrcs;
 		} else {
-			drawcol = dc.col[defaultrcs];
+			drawcol = *dc.defaultrcs;
 			g.fg = defaultcs;
 		}
 	} else {
 		if (ena_sel && selected(term.c.x, term.c.y)) {
-			drawcol = dc.col[defaultrcs];
+			drawcol = *dc.defaultrcs;
 			g.fg = defaultfg;
 			g.bg = defaultrcs;
 		} else {
-			drawcol = dc.col[defaultcs];
+			drawcol = *dc.defaultcs;
 		}
 	}
 
@@ -1418,8 +1466,7 @@ draw(void)
 	XCopyArea(xw.dpy, xw.buf, xw.win, dc.gc, 0, 0, win.w,
 			win.h, 0, 0);
 	XSetForeground(xw.dpy, dc.gc,
-			dc.col[IS_SET(MODE_REVERSE)?
-				defaultfg : defaultbg].pixel);
+			(IS_SET(MODE_REVERSE)? dc.defaultfg : dc.defaultbg)->pixel);
 }
 
 void
