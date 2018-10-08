@@ -528,7 +528,6 @@ void
 brelease(XEvent *e)
 {
 	pid_t child;
-	char cmd[256 + strlen(cwd)];
 
 	if (IS_SET(MODE_MOUSE) && !(e->xbutton.state & forceselmod)) {
 		mousereport(e);
@@ -541,7 +540,8 @@ brelease(XEvent *e)
 		switch(child = fork()) {
 			case -1:
 				return;
-			case 0:
+			case 0: ;
+				char *cmd = malloc(256+strlen(cwd));
 				sprintf(cmd, "(cd %s ; %s %s)", cwd, plumber_cmd, sel.primary);
 				execvp( "sh", (char *const []){ "/bin/sh", "-c", cmd, 0 });
 				exit(127);
